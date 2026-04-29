@@ -70,9 +70,9 @@ function render() {
   if (!root) return;
   root.innerHTML =
     '<div class="page-header" style="margin-bottom:12px"><div class="page-title">Alimentazione</div></div>'+
-    '<div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px">'+
+    '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
     [['log','📋 Log'],['libreria','📚 Lib.'],['piano','📅 Piano'],['spesa','🛒 Spesa']].map(([k,l])=>
-      '<button onclick="alimTab(\''+k+'\')" class="chip '+(tab===k?'chip-active':'chip-dark')+'" style="white-space:nowrap;flex-shrink:0;font-size:11px">'+l+'</button>'
+      '<button onclick="alimTab(\''+k+'\')" class="chip '+(tab===k?'chip-active':'chip-dark')+'" style="flex:1;justify-content:center;font-size:11px">'+l+'</button>'
     ).join('')+
     '</div><div id="alim-c"></div>';
   if      (tab==='log')      rLog();
