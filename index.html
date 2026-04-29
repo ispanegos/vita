@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VITA" />
+  <meta name="theme-color" content="#A8CF3A" />
+  <title>VITA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+  <div id="page-container">
+
+    <section id="page-dashboard" class="page active">
+      <div id="dashboard-root"></div>
+    </section>
+
+    <section id="page-alimentazione" class="page">
+      <div id="alimentazione-root"></div>
+    </section>
+
+    <section id="page-attivita" class="page">
+      <div id="attivita-root"></div>
+    </section>
+
+    <section id="page-salute" class="page">
+      <div id="salute-root"></div>
+    </section>
+
+    <section id="page-calendario" class="page">
+      <div id="calendario-root"></div>
+    </section>
+
+    <section id="page-sonno" class="page">
+      <div id="sonno-root"></div>
+    </section>
+
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" data-page="calendario">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="nav-label">Cal.</span>
+    </button>
+    <button class="nav-item" data-page="alimentazione">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+        <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+      </svg>
+      <span class="nav-label">Alim.</span>
+    </button>
+    <button class="nav-item" data-page="attivita">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-label">Attività</span>
+    </button>
+    <button class="nav-item" data-page="salute">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <span class="nav-label">Salute</span>
+    </button>
+    <button class="nav-item" data-page="sonno">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      <span class="nav-label">Sonno</span>
+    </button>
+  </nav>
+</div>
+
+<!-- MODALS CONTAINER -->
+<div id="modals-container">
+  <!-- Settings/Profile modal -->
+  <div class="modal-overlay" id="modal-impostazioni">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Profilo & Impostazioni</div>
+
+      <div class="form-group">
+        <label class="form-label">Nome</label>
+        <input type="text" class="form-input" id="cfg-name" placeholder="Il tuo nome"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data di nascita</label>
+        <input type="date" class="form-input" id="cfg-dob"/>
+      </div>
+      <button class="btn btn-lime w-full" style="justify-content:center;margin-bottom:16px" onclick="saveProfile()">
+        Salva profilo
+      </button>
+
+      <hr style="border:none;border-top:1px solid var(--black3);margin:4px 0 16px"/>
+
+      <div style="font-size:11px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">
+        Backup & Ripristino
+      </div>
+      <button class="btn btn-ghost w-full" style="justify-content:center;margin-bottom:10px" onclick="doExportGlobal()">
+        📤 Esporta dati (JSON)
+      </button>
+      <label class="btn btn-ghost w-full" style="justify-content:center;cursor:pointer;margin-bottom:16px">
+        📥 Importa dati (JSON)
+        <input type="file" accept=".json" onchange="doImportGlobal(event)" style="display:none"/>
+      </label>
+
+      <hr style="border:none;border-top:1px solid var(--black3);margin:4px 0 16px"/>
+
+      <button class="btn w-full" style="justify-content:center;background:#FF6B6B;color:white" onclick="resetAllDataGlobal()">
+        🗑️ Cancella tutti i dati
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { getData, setData, exportData, importData } from './core.js';
+
+  // ── Pages & Router ───────────────────────────────────────
+  const pages = ['dashboard','calendario','alimentazione','attivita','salute','sonno'];
+
+  window.vitaNavigate = function(page) {
+    pages.forEach(p => {
+      document.getElementById(`page-${p}`)?.classList.toggle('active', p === page);
+    });
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.page === page);
+    });
+    document.dispatchEvent(new CustomEvent('vita:navigate', { detail: { page } }));
+  };
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => window.vitaNavigate(btn.dataset.page));
+  });
+
+  // ── Profile / Settings modal ─────────────────────────────
+  window.openImpostazioni = function() {
+    const data = getData();
+    document.getElementById('cfg-name').value = data.profile?.name || '';
+    document.getElementById('cfg-dob').value  = data.profile?.dob  || '';
+    document.getElementById('modal-impostazioni').classList.add('open');
+  };
+
+  window.saveProfile = function() {
+    const name = document.getElementById('cfg-name').value.trim();
+    const dob  = document.getElementById('cfg-dob').value;
+    if (!name) { alert('Inserisci un nome'); return; }
+    setData(d => ({ ...d, profile: { ...d.profile, name, dob } }));
+    document.getElementById('modal-impostazioni').classList.remove('open');
+    window.vitaNavigate('dashboard');
+  };
+
+  document.getElementById('modal-impostazioni').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-impostazioni'))
+      document.getElementById('modal-impostazioni').classList.remove('open');
+  });
+
+  window.doExportGlobal = function() { exportData(); };
+  window.doImportGlobal = async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try { await importData(file); alert('Importato con successo!'); location.reload(); }
+    catch(err) { alert('Errore: ' + err.message); }
+  };
+  window.resetAllDataGlobal = function() {
+    if (!confirm('Eliminare tutti i dati?')) return;
+    if (!confirm('Conferma definitiva — operazione irreversibile.')) return;
+    localStorage.clear(); location.reload();
+  };
+
+  // ── Load Modules ─────────────────────────────────────────
+  const [dash, cal, alim, att, sal, son] = await Promise.all([
+    import('./modules/dashboard.js'),
+    import('./modules/calendario.js'),
+    import('./modules/alimentazione.js'),
+    import('./modules/attivita.js'),
+    import('./modules/salute.js'),
+    import('./modules/sonno.js'),
+  ]);
+
+  [dash, cal, alim, att, sal, son].forEach(m => m.init?.());
+  window.vitaNavigate('dashboard');
+</script>
+
+</body>
+</html>
