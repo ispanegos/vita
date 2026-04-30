@@ -73,31 +73,7 @@ function render() {
     </div>
 
     <!-- ═══ INDICATORE MOTIVAZIONALE ═══ -->
-    ${(firstWeight && health?.weightGoal) ? (() => {
-      const kgDaObiettivo = firstWeight - health.weightGoal;
-      const guadagnoPotenziale = Math.max(0, kgDaObiettivo / 10);
-      const kgPersi = firstWeight - (lastWeight || firstWeight);
-      const guadagnatoFinora = Math.max(0, kgPersi / 10);
-      const pct = guadagnoPotenziale > 0 ? Math.min(100, Math.round((guadagnatoFinora / guadagnoPotenziale) * 100)) : 0;
-      return \`
-        <div class="card-dark mb-12">
-          <div class="card-title mb-12">📏 Indicatore motivazionale</div>
-          <div style="margin-bottom:16px">
-            <div style="font-size:12px;color:var(--gray2);margin-bottom:4px">Guadagno potenziale</div>
-            <div style="font-size:48px;font-weight:900;color:var(--white);line-height:1">+\${guadagnoPotenziale.toFixed(1)}<span style="font-size:18px;color:var(--gray2)"> cm</span></div>
-            <div style="font-size:12px;color:var(--gray2);margin-top:4px">ogni 10kg persi = +1cm · guadagnati finora: +\${guadagnatoFinora.toFixed(1)}cm</div>
-          </div>
-          <div style="background:var(--black3);border-radius:99px;height:10px;overflow:hidden;margin-bottom:8px">
-            <div style="height:100%;width:\${pct}%;background:var(--lime);border-radius:99px;transition:width 0.5s ease"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray2)">
-            <span>0 cm</span>
-            <span style="color:var(--lime);font-weight:700">\${pct}%</span>
-            <span>+\${guadagnoPotenziale.toFixed(1)} cm</span>
-          </div>
-        </div>
-      \`;
-    })() : ''}
+    ${renderIndicatoreMotivazionale(firstWeight, lastWeight, health?.weightGoal)}
 
     <!-- ═══ MISURE ═══ -->
     <div class="card-dark mb-12">
@@ -207,6 +183,29 @@ function renderMeasurement(m) {
       ` : ''}
     </div>
   `;
+}
+
+function renderIndicatoreMotivazionale(firstWeight, lastWeight, weightGoal) {
+  if (!firstWeight || !weightGoal) return '';
+  const guadagnoPotenziale = Math.max(0, (firstWeight - weightGoal) / 10);
+  const kgPersi = Math.max(0, firstWeight - (lastWeight || firstWeight));
+  const guadagnatoFinora = Math.min(guadagnoPotenziale, kgPersi / 10);
+  const pct = guadagnoPotenziale > 0 ? Math.min(100, Math.round((guadagnatoFinora / guadagnoPotenziale) * 100)) : 0;
+  return '<div class="card-dark mb-12">' +
+    '<div class="card-title mb-12">📏 Indicatore motivazionale</div>' +
+    '<div style="margin-bottom:16px">' +
+    '<div style="font-size:12px;color:var(--gray2);margin-bottom:4px">Guadagno potenziale</div>' +
+    '<div style="font-size:48px;font-weight:900;color:var(--white);line-height:1">+' + guadagnoPotenziale.toFixed(1) + '<span style="font-size:18px;color:var(--gray2)"> cm</span></div>' +
+    '<div style="font-size:12px;color:var(--gray2);margin-top:4px">ogni 10kg persi = +1cm · guadagnati: +' + guadagnatoFinora.toFixed(1) + 'cm</div>' +
+    '</div>' +
+    '<div style="background:var(--black3);border-radius:99px;height:10px;overflow:hidden;margin-bottom:8px">' +
+    '<div style="height:100%;width:' + pct + '%;background:var(--lime);border-radius:99px;transition:width 0.5s ease"></div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray2)">' +
+    '<span>0 cm</span>' +
+    '<span style="color:var(--lime);font-weight:700">' + pct + '%</span>' +
+    '<span>+' + guadagnoPotenziale.toFixed(1) + ' cm</span>' +
+    '</div></div>';
 }
 
 function renderWeightChart(logs) {
