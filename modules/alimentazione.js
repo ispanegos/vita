@@ -172,10 +172,10 @@ function addToLog(meal) {
 function rLib() {
   const el=document.getElementById('alim-c');
   el.innerHTML =
-    '<div style="display:flex;gap:6px;margin-bottom:16px">'+
-    '<button onclick="libTab(\'pasti\')" class="chip '+(libSub==='pasti'?'chip-active':'chip-dark')+'" style="flex:1;justify-content:center;font-size:11px;display:flex;align-items:center;text-align:center">🍽️ Pasti</button>'+
-    '<button onclick="libTab(\'ingredienti\')" class="chip '+(libSub==='ingredienti'?'chip-active':'chip-dark')+'" style="flex:1;justify-content:center;font-size:11px;display:flex;align-items:center;text-align:center">🥦 Ingredienti</button>'+
-    '<button onclick="libTab(\'categorie\')" class="chip '+(libSub==='categorie'?'chip-active':'chip-dark')+'" style="flex:1;justify-content:center;font-size:11px;display:flex;align-items:center;text-align:center">🏷️ Categorie</button>'+
+    '<div style="display:flex;gap:6px;margin-bottom:16px;">'+
+    [['pasti','🍽️ Pasti'],['ingredienti','🥦 Ingredienti'],['categorie','🏷️ Categorie']].map(([k,l])=>
+      '<button onclick="libTab(\''+k+'\')" style="flex:1;padding:8px 2px;border-radius:99px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:'+(libSub===k?'var(--lime)':'var(--black3)')+';color:'+(libSub===k?'var(--black)':'var(--gray2)')+'">'+l+'</button>'
+    ).join('')+
     '</div><div id="lib-c"></div>';
   if      (libSub==='pasti')       rPasti();
   else if (libSub==='ingredienti') rIngredienti();
