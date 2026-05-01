@@ -175,7 +175,11 @@ window.libTab = s => { libSub=s; rLib(); };
 
 function rPasti() {
   const data=D(), ms=meals(data), lc=document.getElementById('lib-c');
-  let h='<div class="flex-between mb-12"><div style="font-size:16px;font-weight:800;color:var(--black)">Pasti salvati</div><button onclick="openNewMealM()" class="btn btn-dark btn-sm">+ Nuovo</button></div>';
+  let h='<div class="flex-between mb-12"><div style="font-size:16px;font-weight:800;color:var(--black)">Pasti salvati</div>'+
+    '<div style="display:flex;gap:6px">'+
+    '<button onclick="genMeal()" class="btn btn-ghost btn-sm">🎲 Genera</button>'+
+    '<button onclick="openNewMealM()" class="btn btn-dark btn-sm">+ Nuovo</button>'+
+    '</div></div>';
   if(!ms.length){h+='<div class="card-dark" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">🍽️</div><div style="color:var(--gray2);font-size:13px">Nessun pasto salvato.</div></div>';}
   else{
     MEAL_TYPES.forEach(type=>{
@@ -295,6 +299,9 @@ function pianoNav() {
 function rPianoPersonale() {
   const pc=document.getElementById('piano-c'), data=D(), pl=plan(data), ms=meals(data);
   let h=pianoNav();
+  // Generate button
+  h+='<button onclick="genPiano(false)" style="width:100%;background:var(--lime);border:none;border-radius:var(--radius-md);padding:12px;font-size:13px;font-weight:700;color:var(--black);cursor:pointer;margin-bottom:14px">🎲 Genera piano settimanale</button>';
+
   const key=pKey(pianoWeek,pianoDay);
   MEAL_TYPES.forEach(type=>{
     const slot=(pl[key]||[]).filter(e=>e.type===type);
@@ -337,6 +344,7 @@ function rPianoFamiglia() {
   h+='</div>';
 
   if(members.length) {
+    h+='<button onclick="genPiano(true)" style="width:100%;background:var(--lime);border:none;border-radius:var(--radius-md);padding:12px;font-size:13px;font-weight:700;color:var(--black);cursor:pointer;margin-bottom:14px">🎲 Genera piano famiglia</button>';
     // Piano per ogni membro
     members.forEach(function(mb){
       h+='<div class="card-dark mb-12">'+
@@ -509,6 +517,164 @@ window.setSW=o=>{pianoWeek=o;rSpesa();};
 window.tgSpesa=function(idx){const c=document.getElementById('sc'+idx),n=document.getElementById('sn'+idx);const done=c.dataset.done==='1';c.dataset.done=done?'0':'1';c.innerHTML=done?'':'✓';c.style.background=done?'transparent':'var(--lime)';c.style.color='var(--black)';n.style.textDecoration=done?'none':'line-through';n.style.color=done?'var(--black)':'var(--gray2)';};
 window.exportSpesa=function(){const card=document.getElementById('spesa-card');if(!card)return;const go=()=>html2canvas(card,{scale:3,backgroundColor:'#ffffff'}).then(c=>{const a=document.createElement('a');a.download='lista-spesa.png';a.href=c.toDataURL('image/png');a.click();});if(typeof html2canvas!=='undefined'){go();}else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=go;document.head.appendChild(s);}};
 
+
+// ══ GENERAZIONE AUTOMATICA ═══════════════════════════════════
+
+window.genMeal = function() { openModal('modal-gen-meal'); };
+
+window.doGenMeal = function() {
+  const type = document.getElementById('gen-type').value;
+  closeModal('modal-gen-meal');
+  const meal = buildMeal(type, null);
+  if (!meal) { alert('Non ci sono abbastanza ingredienti in libreria per generare un pasto.'); return; }
+  // Pre-fill meal modal
+  mIngreds  = meal.ingredients;
+  mMealType = type;
+  mMealId   = null;
+  document.getElementById('meal-mtitle').textContent = 'Pasto generato — modifica e salva';
+  document.getElementById('meal-mid').value   = '';
+  document.getElementById('meal-mname').value = meal.name;
+  document.getElementById('meal-mtype').value = type;
+  document.getElementById('meal-logwrap').style.display = 'flex';
+  document.getElementById('meal-addlog').checked = false;
+  document.getElementById('ing-search').value  = '';
+  document.getElementById('ing-res').innerHTML = '';
+  renderMIngList();
+  updateMTotals();
+  openModal('modal-meal');
+};
+
+// Build a meal from ingredients library
+function buildMeal(type, targetKcal) {
+  const data  = D();
+  const allIngs = ings(data);
+  if (allIngs.length < 3) return null;
+
+  const bmr    = data.health?.bmr || 2000;
+  const def    = data.health?.caloricDeficit || 0;
+  const daily  = targetKcal || (bmr - def);
+
+  // Kcal targets per meal type
+  const pcts = { Colazione: 0.22, Pranzo: 0.35, Cena: 0.30, Snack: 0.13 };
+  const mealKcal = Math.round(daily * (pcts[type] || 0.25));
+
+  // Classify ingredients by role
+  const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+  const carbIngs   = shuffle(allIngs.filter(i => ['cat01'].includes(i.categoryId)));
+  const protIngs   = shuffle(allIngs.filter(i => ['cat02','cat03','cat04','cat05'].includes(i.categoryId)));
+  const vegIngs    = shuffle(allIngs.filter(i => ['cat06'].includes(i.categoryId)));
+  const fatIngs    = shuffle(allIngs.filter(i => ['cat08','cat09'].includes(i.categoryId) && i.fatPer100 > 20));
+  const fruitIngs  = shuffle(allIngs.filter(i => ['cat07'].includes(i.categoryId)));
+
+  let chosen = [];
+
+  if (type === 'Colazione') {
+    // Carb + protein/dairy + fruit optional + fat small
+    if (carbIngs[0])  chosen.push({ ...carbIngs[0],  grams: Math.round(mealKcal * 0.40 / (carbIngs[0].kcalPer100 / 100))  });
+    if (protIngs[0])  chosen.push({ ...protIngs[0],  grams: Math.round(mealKcal * 0.35 / (protIngs[0].kcalPer100 / 100))  });
+    if (fruitIngs[0]) chosen.push({ ...fruitIngs[0], grams: Math.round(mealKcal * 0.15 / (fruitIngs[0].kcalPer100 / 100)) });
+    if (fatIngs[0])   chosen.push({ ...fatIngs[0],   grams: Math.round(mealKcal * 0.10 / (fatIngs[0].kcalPer100 / 100))   });
+  } else if (type === 'Snack') {
+    // Fruit + protein or fat
+    if (fruitIngs[0]) chosen.push({ ...fruitIngs[0], grams: Math.round(mealKcal * 0.55 / (fruitIngs[0].kcalPer100 / 100)) });
+    if (protIngs[0])  chosen.push({ ...protIngs[0],  grams: Math.round(mealKcal * 0.45 / (protIngs[0].kcalPer100 / 100))  });
+  } else {
+    // Pranzo / Cena: carb + protein + veg + fat
+    if (carbIngs[0])  chosen.push({ ...carbIngs[0],  grams: Math.round(mealKcal * 0.38 / (carbIngs[0].kcalPer100 / 100))  });
+    if (protIngs[0])  chosen.push({ ...protIngs[0],  grams: Math.round(mealKcal * 0.30 / (protIngs[0].kcalPer100 / 100))  });
+    if (vegIngs[0])   chosen.push({ ...vegIngs[0],   grams: Math.round(mealKcal * 0.18 / (vegIngs[0].kcalPer100 / 100))   });
+    if (fatIngs[0])   chosen.push({ ...fatIngs[0],   grams: Math.round(mealKcal * 0.14 / (fatIngs[0].kcalPer100 / 100))   });
+  }
+
+  // Add ingredientId and clamp grams
+  chosen = chosen
+    .filter(i => i && i.kcalPer100 > 0)
+    .map(i => ({
+      ingredientId: i.id,
+      name: i.name,
+      grams: Math.max(10, Math.min(500, i.grams || 100)),
+      kcalPer100: i.kcalPer100, proteinPer100: i.proteinPer100,
+      carbsPer100: i.carbsPer100, fatPer100: i.fatPer100, fiberPer100: i.fiberPer100 || 0,
+    }));
+
+  if (!chosen.length) return null;
+
+  const names = { Colazione:'Colazione', Pranzo:'Pranzo', Cena:'Cena', Snack:'Snack' };
+  return { name: names[type] + ' bilanciato', type, ingredients: chosen };
+}
+
+// Generate full week plan
+window.genPiano = function(forFamily) {
+  if (!confirm('Generare un piano settimanale automatico? Il piano esistente per questa settimana verrà sostituito.')) return;
+
+  const data    = D();
+  const ms      = meals(data);
+  const members = forFamily ? family(data) : [];
+  const bmr     = data.health?.bmr || 2000;
+  const def     = data.health?.caloricDeficit || 0;
+  const myKcal  = bmr - def;
+
+  // Types to plan (no Snack in auto)
+  const planTypes = ['Colazione', 'Pranzo', 'Cena'];
+
+  function getOrGenMeal(type, targetKcal, usedIds, savedMeals) {
+    // Try to pick from saved meals of this type not used recently
+    const available = savedMeals.filter(m => m.type === type && !usedIds.includes(m.id));
+    if (available.length) {
+      const pick = available[Math.floor(Math.random() * available.length)];
+      usedIds.push(pick.id);
+      return pick;
+    }
+    // Fallback: generate one on the fly
+    return buildMeal(type, targetKcal);
+  }
+
+  function buildWeekPlan(targetKcal, savedMeals, keyFn) {
+    const newPlan = {};
+    planTypes.forEach(type => {
+      const usedIds = [];
+      for (let day = 0; day < 7; day++) {
+        const key = keyFn(day);
+        if (!newPlan[key]) newPlan[key] = [];
+        const meal = getOrGenMeal(type, targetKcal, usedIds, savedMeals);
+        if (meal) {
+          // Save generated meal to library if not already there
+          if (!savedMeals.find(m => m.id === meal.id)) {
+            meal.id = uid();
+            savedMeals.push(meal);
+          }
+          newPlan[key].push({ type, mealId: meal.id });
+        }
+      }
+    });
+    return { newPlan, savedMeals };
+  }
+
+  setData(d => {
+    let updatedMeals = [...meals(d)];
+    let newData = { ...d };
+
+    if (!forFamily) {
+      const { newPlan, savedMeals } = buildWeekPlan(myKcal, updatedMeals, day => pKey(pianoWeek, day));
+      // Merge into existing plan (replace only this week)
+      const existingPlan = { ...plan(d) };
+      Object.assign(existingPlan, newPlan);
+      newData = { ...newData, nutrition: { ...newData.nutrition, plan: existingPlan, meals: savedMeals } };
+    } else {
+      const fp = { ...fPlan(d) };
+      members.forEach(mb => {
+        const { newPlan, savedMeals } = buildWeekPlan(mb.kcal, updatedMeals, day => fpKey(pianoWeek, day, mb.id));
+        Object.assign(fp, newPlan);
+        updatedMeals = savedMeals;
+      });
+      newData = { ...newData, nutrition: { ...newData.nutrition, familyPlan: fp, meals: updatedMeals } };
+    }
+    return newData;
+  });
+
+  forFamily ? rPianoFamiglia() : rPianoPersonale();
+};
+
 // ══ MODALS ════════════════════════════════════════════════════
 
 function buildModals() {
@@ -554,6 +720,15 @@ function buildModals() {
     '<input type="hidden" id="piano-type"/><input type="hidden" id="piano-member"/>'+
     '<div id="piano-list" style="max-height:60vh;overflow-y:auto"></div>'+
     '<button class="btn btn-ghost w-full" style="justify-content:center;margin-top:12px" onclick="closeModal(\'modal-piano\')">Chiudi</button>'
+  );
+
+  addM(c,'modal-gen-meal',
+    '<div class="modal-handle"></div><div class="modal-title">Genera Pasto Automatico</div>'+
+    '<div class="form-group"><label class="form-label">Tipo pasto</label>'+
+    '<select class="form-input" id="gen-type">'+MEAL_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select></div>'+
+    '<div style="font-size:12px;color:var(--gray2);margin-bottom:16px">L'app comporrà un pasto bilanciato dagli ingredienti in libreria. Potrai modificarlo prima di salvare.</div>'+
+    '<button class="btn btn-lime w-full" style="justify-content:center" onclick="doGenMeal()">🎲 Genera</button>'+
+    '<button class="btn btn-ghost w-full" style="justify-content:center;margin-top:8px" onclick="closeModal('modal-gen-meal')">Annulla</button>'
   );
 
   addM(c,'modal-family-member',
