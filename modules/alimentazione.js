@@ -726,9 +726,9 @@ function buildModals() {
     '<div class="modal-handle"></div><div class="modal-title">Genera Pasto Automatico</div>'+
     '<div class="form-group"><label class="form-label">Tipo pasto</label>'+
     '<select class="form-input" id="gen-type">'+MEAL_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+'</select></div>'+
-    '<div style="font-size:12px;color:var(--gray2);margin-bottom:16px">L'app comporrà un pasto bilanciato dagli ingredienti in libreria. Potrai modificarlo prima di salvare.</div>'+
+    '<div style="font-size:12px;color:var(--gray2);margin-bottom:16px">Genera un pasto bilanciato dagli ingredienti in libreria. Potrai modificarlo prima di salvare.</div>'+
     '<button class="btn btn-lime w-full" style="justify-content:center" onclick="doGenMeal()">🎲 Genera</button>'+
-    '<button class="btn btn-ghost w-full" style="justify-content:center;margin-top:8px" onclick="closeModal('modal-gen-meal')">Annulla</button>'
+    '<button class="btn btn-ghost w-full" style="justify-content:center;margin-top:8px" onclick="closeModal(\'modal-gen-meal\')">Annulla</button>'
   );
 
   addM(c,'modal-family-member',
