@@ -40,6 +40,9 @@ function render() {
 
   // Rest score (0–100)
   const restScore = computeRestScore(data);
+  const sleepStats = computeSleepStats(data);
+  const avgDef7 = sleepStats.avgDeficit7;
+  const totalDef30 = sleepStats.totalDeficit30;
 
   // Circle SVG
   const R = 54, CIRC = 2 * Math.PI * R;
@@ -74,19 +77,30 @@ function render() {
     <!-- Stats row -->
     <div class="grid-2">
       <div class="card-dark">
-        <div class="card-title">Media sett.</div>
-        <div style="font-size:28px;font-weight:900;color:var(--white);margin-top:4px">
-          ${weekAvg !== null ? `${Math.floor(weekAvg)}h ${Math.round((weekAvg%1)*60)}'` : '—'}
+        <div class="card-title" style="font-size:11px">Deficit stanotte</div>
+        <div style="font-size:24px;font-weight:900;color:${sleepDeficit !== null && sleepDeficit > 0 ? '#FF6B6B' : 'var(--lime)'};margin-top:4px">
+          ${sleepDeficit !== null ? fmtDeficit(sleepDeficit) : '—'}
         </div>
       </div>
       <div class="card-dark">
-        <div class="card-title">Deficit oggi</div>
-        <div style="font-size:28px;font-weight:900;color:${sleepDeficit > 0 ? '#FF6B6B' : 'var(--lime)'};margin-top:4px">
-          ${sleepDeficit !== null
-            ? sleepDeficit > 0
-              ? `-${Math.floor(sleepDeficit)}h${Math.round((sleepDeficit%1)*60) ? Math.round((sleepDeficit%1)*60)+"'" : ''}`
-              : '✓ OK'
-            : '—'}
+        <div class="card-title" style="font-size:11px">Deficit medio 7gg</div>
+        <div style="font-size:24px;font-weight:900;color:${avgDef7 !== null && avgDef7 > 0 ? '#FF6B6B' : 'var(--lime)'};margin-top:4px">
+          ${avgDef7 !== null ? fmtDeficit(avgDef7) : '—'}
+        </div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card-dark">
+        <div class="card-title" style="font-size:11px">Debito totale 30gg</div>
+        <div style="font-size:24px;font-weight:900;color:${totalDef30 > 5 ? '#FF6B6B' : totalDef30 > 0 ? '#FFA500' : 'var(--lime)'};margin-top:4px">
+          ${totalDef30 > 0 ? '-' + Math.floor(totalDef30) + 'h' + (Math.round((totalDef30%1)*60) ? Math.round((totalDef30%1)*60)+"'" : '') : '✓ 0h'}
+        </div>
+        <div style="font-size:10px;color:var(--gray2);margin-top:2px">ultimi 30 giorni</div>
+      </div>
+      <div class="card-dark">
+        <div class="card-title" style="font-size:11px">Media sett.</div>
+        <div style="font-size:24px;font-weight:900;color:var(--white);margin-top:4px">
+          ${weekAvg !== null ? `${Math.floor(weekAvg)}h ${Math.round((weekAvg%1)*60)}'` : '—'}
         </div>
       </div>
     </div>
@@ -149,35 +163,84 @@ function render() {
 // ── Score computation ─────────────────────────────────────────
 
 function computeRestScore(data) {
-  const logs = (data.sleep?.logs || []).slice(-14); // last 14 days
-  if (!logs.length) return 0;
-  const goal = data.sleep?.goal || 8;
+  const allLogs = data.sleep?.logs || [];
+  const goal    = data.sleep?.goal || 8;
+  if (!allLogs.length) return 0;
 
-  const scores = logs.map(log => {
-    const hourScore    = Math.min(1, log.hours / goal);
-    const qualityScore = (log.quality || 3) / 5;
-    const napBonus     = log.nap ? Math.min(0.1, log.nap / 600) : 0; // max 10% bonus
-    const tirednessScore = log.tiredness ? 1 - ((log.tiredness - 1) / 4) : 0.6;
-    const raw = hourScore * 0.5 + qualityScore * 0.3 + tirednessScore * 0.15 + napBonus * 0.05;
-    return raw;
+  const now = new Date();
+
+  // Logs last 30 days for total deficit
+  const logs30 = allLogs.filter(l => {
+    const d = new Date(l.date + 'T00:00:00');
+    return (now - d) / 864e5 <= 30;
   });
 
-  // Weighted avg: recent days count more
-  let weighted = 0, totalW = 0;
-  scores.forEach((s, i) => {
-    const w = i + 1;
-    weighted += s * w;
-    totalW += w;
+  // Logs last 7 days for daily avg deficit
+  const logs7 = allLogs.filter(l => {
+    const d = new Date(l.date + 'T00:00:00');
+    return (now - d) / 864e5 <= 7;
   });
-  return Math.round((weighted / totalW) * 100);
+
+  // Logs last 14 days for quality avg
+  const logs14 = allLogs.filter(l => {
+    const d = new Date(l.date + 'T00:00:00');
+    return (now - d) / 864e5 <= 14;
+  });
+
+  // Total deficit last 30 days (hours)
+  const totalDeficit30 = logs30.reduce((s, l) => s + Math.max(0, goal - l.hours), 0);
+  // Score: 0 deficit = 40pts, each hour of debt reduces score (max 30h debt = 0pts)
+  const deficitTotalScore = Math.max(0, 1 - totalDeficit30 / 30) * 40;
+
+  // Daily avg deficit last 7 days
+  const avgDeficit7 = logs7.length
+    ? logs7.reduce((s, l) => s + Math.max(0, goal - l.hours), 0) / logs7.length
+    : goal * 0.5;
+  // Score: 0 avg deficit = 35pts, 3h avg deficit = 0pts
+  const deficitAvgScore = Math.max(0, 1 - avgDeficit7 / 3) * 35;
+
+  // Quality avg last 14 days
+  const qualityLogs = logs14.filter(l => l.quality);
+  const avgQuality  = qualityLogs.length
+    ? qualityLogs.reduce((s, l) => s + l.quality, 0) / qualityLogs.length
+    : 3;
+  const qualityScore = ((avgQuality - 1) / 4) * 25; // 1→0pts, 5→25pts
+
+  return Math.min(100, Math.round(deficitTotalScore + deficitAvgScore + qualityScore));
+}
+
+function computeSleepStats(data) {
+  const allLogs = data.sleep?.logs || [];
+  const goal    = data.sleep?.goal || 8;
+  const now     = new Date();
+
+  const logs30 = allLogs.filter(l => (now - new Date(l.date + 'T00:00:00')) / 864e5 <= 30);
+  const logs7  = allLogs.filter(l => (now - new Date(l.date + 'T00:00:00')) / 864e5 <= 7);
+
+  const totalDeficit30 = logs30.reduce((s, l) => s + Math.max(0, goal - l.hours), 0);
+  const avgDeficit7    = logs7.length
+    ? logs7.reduce((s, l) => s + (goal - l.hours), 0) / logs7.length
+    : null;
+
+  return { totalDeficit30, avgDeficit7 };
 }
 
 function restLabel(score) {
-  if (score >= 85) return 'Ottimo';
-  if (score >= 70) return 'Buono';
-  if (score >= 50) return 'Sufficiente';
-  if (score >= 30) return 'Scarso';
-  return 'Insufficiente';
+  if (score >= 80) return '🟢 Ottimo';
+  if (score >= 60) return '🟡 Buono';
+  if (score >= 40) return '🟠 Discreto';
+  if (score >= 20) return '🔴 Scarso';
+  return '💀 Critico';
+}
+
+function fmtDeficit(h) {
+  if (h === null) return '—';
+  const sign = h > 0 ? '-' : h < 0 ? '+' : '';
+  const abs  = Math.abs(h);
+  const hh   = Math.floor(abs);
+  const mm   = Math.round((abs % 1) * 60);
+  if (h === 0) return '✓ OK';
+  return sign + hh + 'h' + (mm ? mm + "'" : '');
 }
 
 // ── Modal ─────────────────────────────────────────────────────
