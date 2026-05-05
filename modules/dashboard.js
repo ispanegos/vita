@@ -52,7 +52,10 @@ function render() {
 
   // ── Nutrition today ──────────────────────────────────────
   const todayNutr  = nutritionLogs.find(l => l.date === todayStr);
-  const todayEaten = todayNutr ? (todayNutr.meals||[]).reduce((s,m) => s+(m.kcal||0), 0) : 0;
+  const todayEaten = todayNutr ? (todayNutr.meals||[]).reduce((s,m) => {
+    const mKcal = (m.ingredients||[]).reduce((si,i) => si + Math.round((i.kcalPer100||0)*(i.grams||0)/100), 0);
+    return s + (m.kcal || mKcal);
+  }, 0) : 0;
   const calorieGoal = data.health?.bmr ? data.health?.bmr - deficit : null;
   const caloriesPct = calorieGoal ? Math.min(100, Math.round((todayEaten / calorieGoal) * 100)) : 0;
 
@@ -115,6 +118,19 @@ function render() {
       `}
     </div>
 
+    <!-- Calorie oggi -->
+    <div class="card-dark mb-12" onclick="window.vitaNavigate('alimentazione')" style="cursor:pointer">
+      <div class="card-title">🥗 Calorie oggi</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px">
+        <div>
+          <span style="font-size:36px;font-weight:900;color:var(--white)">${fmtNum(todayEaten)}</span>
+          <span style="font-size:14px;color:var(--gray2)"> / ${calorieGoal ? fmtNum(calorieGoal) : '—'} kcal</span>
+        </div>
+        <span style="font-size:18px;font-weight:800;color:var(--lime)">${caloriesPct}%</span>
+      </div>
+      <div class="progress-wrap mt-8"><div class="progress-bar" style="width:${caloriesPct}%"></div></div>
+    </div>
+
     <!-- Sonno + Attività -->
     <div class="grid-2">
       <div class="card" onclick="window.vitaNavigate('sonno')" style="cursor:pointer">
@@ -142,20 +158,7 @@ function render() {
     </div>
     ` : ''}
 
-    <!-- Calorie oggi -->
-    ${calorieGoal ? `
-    <div class="card-dark mb-12" onclick="window.vitaNavigate('alimentazione')" style="cursor:pointer">
-      <div class="card-title">🥗 Calorie oggi</div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:6px">
-        <div>
-          <span style="font-size:36px;font-weight:900;color:var(--white)">${fmtNum(todayEaten)}</span>
-          <span style="font-size:14px;color:var(--gray2)"> / ${fmtNum(calorieGoal)} kcal</span>
-        </div>
-        <span style="font-size:18px;font-weight:800;color:var(--lime)">${caloriesPct}%</span>
-      </div>
-      <div class="progress-wrap mt-8"><div class="progress-bar" style="width:${caloriesPct}%"></div></div>
-    </div>
-    ` : ''}
+
   `;
 }
 

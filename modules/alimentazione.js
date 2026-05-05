@@ -693,9 +693,12 @@ function buildModals() {
     '<div id="ing-res" style="margin-bottom:10px"></div>' +
     '<div class="form-label" style="margin-bottom:6px">Ingredienti</div>' +
     '<div id="meal-ings" style="margin-bottom:12px"></div>' +
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px" id="meal-logwrap">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px" id="meal-logwrap">' +
     '<input type="checkbox" id="meal-addlog" style="width:18px;height:18px;accent-color:var(--lime)" checked/>' +
-    '<label for="meal-addlog" style="font-size:13px;color:var(--gray2);cursor:pointer">Aggiungi anche al log di oggi</label></div>' +
+    '<label for="meal-addlog" style="font-size:13px;color:var(--gray2);cursor:pointer">Aggiungi al log di oggi</label></div>' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px" id="meal-savelibwrap">' +
+    '<input type="checkbox" id="meal-savelib" style="width:18px;height:18px;accent-color:var(--lime)"/>' +
+    '<label for="meal-savelib" style="font-size:13px;color:var(--gray2);cursor:pointer">Salva anche in libreria</label></div>' +
     '<button class="btn btn-lime w-full" style="justify-content:center" onclick="saveMeal()">Salva pasto</button>' +
     '<button class="btn btn-ghost w-full" style="justify-content:center;margin-top:8px" onclick="closeModal(\'modal-meal\')">Annulla</button>'
   );
@@ -786,6 +789,7 @@ function openMealModal(editId) {
     document.getElementById('meal-mtype').value = m.type;
     mIngreds = (m.ingredients || []).map(i => ({ ...i }));
     document.getElementById('meal-logwrap').style.display = 'none';
+    document.getElementById('meal-savelibwrap').style.display = 'none';
   } else {
     document.getElementById('meal-mtitle').textContent = 'Nuovo Pasto';
     document.getElementById('meal-mid').value = '';
@@ -793,6 +797,8 @@ function openMealModal(editId) {
     document.getElementById('meal-mtype').value = mMealType;
     document.getElementById('meal-logwrap').style.display = 'flex';
     document.getElementById('meal-addlog').checked = true;
+    document.getElementById('meal-savelibwrap').style.display = 'flex';
+    document.getElementById('meal-savelib').checked = false;
   }
   document.getElementById('ing-search').value = '';
   document.getElementById('ing-res').innerHTML = '';
@@ -873,14 +879,20 @@ function updateMTotals() {
 }
 
 window.saveMeal = function() {
-  const editId = document.getElementById('meal-mid').value;
-  const name   = document.getElementById('meal-mname').value.trim();
-  const type   = document.getElementById('meal-mtype').value;
-  const addlog = document.getElementById('meal-addlog')?.checked;
-  if (!name) { alert('Inserisci un nome'); return; }
+  const editId  = document.getElementById('meal-mid').value;
+  const nameRaw = document.getElementById('meal-mname').value.trim();
+  const type    = document.getElementById('meal-mtype').value;
+  const addlog  = document.getElementById('meal-addlog')?.checked;
+  const saveLib = document.getElementById('meal-savelib')?.checked;
   if (!mIngreds.length) { alert('Aggiungi almeno un ingrediente'); return; }
+  // Name required only when saving to library
+  if ((saveLib || editId || tab !== 'log') && !nameRaw) { alert('Inserisci un nome'); return; }
+  const name = nameRaw || (MEAL_EMOJI[type] + ' ' + type + ' ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
   const meal = { id: editId || uid(), name, type, ingredients: [...mIngreds] };
-  setData(d => { const list = [...meals(d)], idx = list.findIndex(m => m.id === meal.id); if (idx !== -1) list[idx] = meal; else list.push(meal); return { ...d, nutrition: { ...d.nutrition, meals: list } }; });
+  // Save to library only if editing existing or checkbox checked
+  if (editId || saveLib) {
+    setData(d => { const list = [...meals(d)], idx = list.findIndex(m => m.id === meal.id); if (idx !== -1) list[idx] = meal; else list.push(meal); return { ...d, nutrition: { ...d.nutrition, meals: list } }; });
+  }
   if (!editId && addlog) addToLog(meal);
   closeModal('modal-meal');
   tab === 'log' ? rLog() : rPasti();

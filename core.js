@@ -41,6 +41,9 @@ function deepMerge(base, imported) {
   for (const key of Object.keys(imported)) {
     if (imported[key] !== null && typeof imported[key] === 'object' && !Array.isArray(imported[key])) {
       result[key] = deepMerge(base[key] || {}, imported[key]);
+    } else if (Array.isArray(imported[key])) {
+      // Keep default array if imported is empty
+      result[key] = imported[key].length > 0 ? imported[key] : (base[key] || []);
     } else {
       result[key] = imported[key];
     }
